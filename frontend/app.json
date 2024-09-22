@@ -1,0 +1,29 @@
+{
+  "expo": {
+    "name": "ht_aura",
+    "slug": "ht_aura",
+    "scheme": "ht_aura",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./fronted./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./fronted./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./fronted./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      }
+    },
+    "web": {
+      "favicon": "./frontend./assets/favicon.png"
+    },
+    "plugins": ["expo-router"]
+  }
+}
