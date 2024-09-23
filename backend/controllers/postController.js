@@ -1,16 +1,17 @@
 const { db } = require("../config/firebaseAdmin");
 
 exports.createPost = async (req, res) => {
-  const { userId, title, content, status } = req.body;
+  const { Id, title, content, status, userId } = req.body;
 
   try {
     const postRef = db.collection("posts").doc();
     await postRef.set({
-      userId,
+      Id: postRef.id,
       title,
       content,
       status,
       createdAt: new Date(),
+      userId,
     });
 
     return res.status(201).json({ message: "Post created successfully" });
@@ -45,7 +46,7 @@ exports.getUserPosts = async (req, res) => {
   try {
     const postsSnapshot = await db
       .collection("posts")
-      .where("userId", "==", userId)
+      .where("Id", "==", userId)
       .get();
 
     const posts = postsSnapshot.docs.map((doc) => ({

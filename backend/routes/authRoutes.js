@@ -6,7 +6,7 @@ const {
   checkPhone,
   checkUsername,
   getUserProfile,
-} = require("../authController");
+} = require("../controllers/authController");
 
 const router = express.Router();
 

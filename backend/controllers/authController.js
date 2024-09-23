@@ -1,8 +1,8 @@
 const bcrypt = require("bcryptjs");
-const { db, admin } = require("./config/firebaseAdmin");
+const { db, admin } = require("../config/firebaseAdmin");
 
 exports.signup = async (req, res) => {
-  const { username, phone, password } = req.body;
+  const { Id, username, phone, password } = req.body;
   try {
     const usersRef = admin.firestore().collection("users");
     // Hash the password for security
@@ -10,6 +10,7 @@ exports.signup = async (req, res) => {
     // Create a new user in Firestore (not in Firebase Authentication)
     const newUserRef = usersRef.doc(); // Generate a new document ID
     await newUserRef.set({
+      Id: newUserRef.id,
       username,
       phone,
       password: hashedPassword,

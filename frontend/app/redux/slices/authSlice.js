@@ -1,4 +1,6 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { jwtDecode } from "jwt-decode";
 import {
   signUpUser,
   signInUser,
@@ -12,6 +14,7 @@ export const signup = createAsyncThunk(
   async (userData, thunkAPI) => {
     try {
       const response = await signUpUser(
+        userData.Id,
         userData.username,
         userData.phone,
         userData.password
@@ -28,12 +31,21 @@ export const signin = createAsyncThunk(
   async (userData, thunkAPI) => {
     try {
       const token = await signInUser(userData.phone, userData.password);
-      return token; // this could be the token
+      await AsyncStorage.setItem("token", token);
+      return { token, user: jwtDecode(token) };
     } catch (error) {
       return thunkAPI.rejectWithValue(error.message);
     }
   }
 );
+
+export const loadToken = createAsyncThunk("auth/loadToken", async () => {
+  const token = await AsyncStorage.getItem("token");
+  if (token) {
+    return { token, user: jwtDecode(token) };
+  }
+  return null;
+});
 
 export const getUserProfile = createAsyncThunk(
   "auth/getUserInfo",
@@ -98,12 +110,19 @@ const authSlice = createSlice({
         state.error = null;
       })
       .addCase(signin.fulfilled, (state, action) => {
+        state.token = action.payload.token;
+        state.user = action.payload.user;
         state.loading = false;
-        state.token = action.payload; // Store the token
       })
       .addCase(signin.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
+      })
+      .addCase(loadToken.fulfilled, (state, action) => {
+        if (action.payload) {
+          state.token = action.payload.token;
+          state.user = action.payload.user;
+        }
       })
       // Fetch user info logic
       .addCase(getUserProfile.pending, (state) => {

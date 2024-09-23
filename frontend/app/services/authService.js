@@ -27,10 +27,11 @@ export const checkPhoneAv = async (phone) => {
     throw new Error("Error checking phone availability");
   }
 };
-export const signUpUser = async (username, phone, password) => {
+export const signUpUser = async (Id, username, phone, password) => {
   try {
     // Axios post method automatically handles headers and JSON stringification
     const response = await axios.post(`${APP_API_URL}/auth/signup`, {
+      Id,
       username,
       phone,
       password,
@@ -53,7 +54,7 @@ export const signInUser = async (phone, password) => {
       phone,
       password,
     });
-    return response.data.token; // Returns the JWT token
+    return response.data.token;
   } catch (error) {
     throw new Error(error.response?.data || error.message);
   }

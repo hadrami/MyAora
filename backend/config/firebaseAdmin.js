@@ -23,5 +23,4 @@ admin.initializeApp({
 
 // Initialize Firestore (admin version)
 const db = admin.firestore();
-
 module.exports = { db, admin };

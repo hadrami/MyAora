@@ -105,6 +105,7 @@ const Signup = () => {
     }
 
     const Fullphone = `${callingCode}${phone}`;
+    const Id = "";
     setIsSubmitting(true);
 
     try {
@@ -116,7 +117,9 @@ const Signup = () => {
       // Send the verified data to backend
 
       // Proceed with sign-up
-      await dispatch(signup({ username, Fullphone, password })).unwrap();
+      const decodedToken = await dispatch(
+        signup({ Id, username, phone, password })
+      ).unwrap();
       Alert.alert("Success", "User signed up successfully");
       router.push("/signin");
     } catch (error) {

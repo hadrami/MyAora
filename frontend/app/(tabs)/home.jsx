@@ -1,11 +1,25 @@
-import { View, Text } from "react-native";
-import React from "react";
+import React, { useEffect } from "react";
+import { View, ScrollView, Text } from "react-native";
+import { useDispatch, useSelector } from "react-redux";
+import { getAllPosts } from "../redux/slices/postSlice";
+import PostCard from "../components/postCard";
 
 const Home = () => {
+  const dispatch = useDispatch();
+  const { allPosts, loading } = useSelector((state) => state.posts);
+
+  useEffect(() => {
+    dispatch(getAllPosts());
+  }, [dispatch]);
+
   return (
-    <View>
-      <Text>Home</Text>
-    </View>
+    <ScrollView className="p-4">
+      {loading ? (
+        <Text>Loading...</Text>
+      ) : (
+        allPosts.map((post) => <PostCard key={post.id} post={post} />)
+      )}
+    </ScrollView>
   );
 };
 
