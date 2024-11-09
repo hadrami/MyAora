@@ -1,22 +1,22 @@
 import React from "react";
-import { View, Text, TouchableOpacity } from "react-native";
-import { ImageCarousel } from "./ImageCarousel"; // Handles multiple images
-import { Avatar } from "./Avatar";
+import { View, Text, Image } from "react-native";
+import { convertTimestampToDate } from "../hooks/timestampReader";
 
 const PostCard = ({ post }) => {
+  console.log("Post in the Card: ", post);
+  const postDate = convertTimestampToDate(post.createdAt);
   return (
-    <TouchableOpacity className="bg-white rounded-lg shadow p-4 mb-4">
-      <View className="flex-row items-center mb-2">
-        <Avatar user={post.user} />
-        <Text className="ml-2 text-lg font-bold">{post.user.username}</Text>
+    <View className="bg-white p-4 shadow rounded-lg mb-4">
+      <Image
+        source={{ uri: post.images[0] }}
+        className="w-full h-40 rounded-lg mb-4"
+      />
+      <View className="flex-row justify-between items-center">
+        <Text className="text-lg font-bold">{post.title}</Text>
+        <Text className="text-gray-500">{postDate}</Text>
       </View>
-      <ImageCarousel images={post.images} />
-      <Text className="text-xl font-semibold mt-2">{post.title}</Text>
-      <Text className="text-gray-500">
-        {new Date(post.createdAt).toLocaleDateString()}
-      </Text>
-      <Text className="text-sm text-green-600">{post.status}</Text>
-    </TouchableOpacity>
+      <Text className="text-gray-600">{post.status}</Text>
+    </View>
   );
 };
 

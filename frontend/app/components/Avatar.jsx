@@ -2,6 +2,7 @@ import React from "react";
 import { View, Text, Image } from "react-native";
 
 export const Avatar = ({ user }) => {
+  console.log("***User of the avatar***:", user);
   return (
     <View className="h-10 w-10 bg-gray-200 rounded-full flex items-center justify-center">
       {user.avatar ? (

@@ -7,7 +7,7 @@ import {
   getUserInfo,
   fetchUserPosts,
 } from "../../services/authService";
-
+import { getAllPosts } from "./postSlice";
 // Async actions using createAsyncThunk
 export const signup = createAsyncThunk(
   "auth/signup",
@@ -31,8 +31,11 @@ export const signin = createAsyncThunk(
   async (userData, thunkAPI) => {
     try {
       const token = await signInUser(userData.phone, userData.password);
-      await AsyncStorage.setItem("token", token);
-      return { token, user: jwtDecode(token) };
+      const decodedToken = jwtDecode(token);
+      const uid = decodedToken.uid; // Decode token to get user ID
+      const user = await getUserInfo(uid); // Fetch user data
+      // Fetch all posts after successful sign-in
+      return { token, user };
     } catch (error) {
       return thunkAPI.rejectWithValue(error.message);
     }
@@ -42,16 +45,16 @@ export const signin = createAsyncThunk(
 export const loadToken = createAsyncThunk("auth/loadToken", async () => {
   const token = await AsyncStorage.getItem("token");
   if (token) {
-    return { token, user: jwtDecode(token) };
+    return { token: jwtDecode(token) };
   }
   return null;
 });
 
 export const getUserProfile = createAsyncThunk(
-  "auth/getUserInfo",
+  "auth/users/userId",
   async (userId, thunkAPI) => {
     try {
-      const response = await getUserInfo(userId);
+      const response = await getUserProfile(userId);
       return response.data;
     } catch (error) {
       return thunkAPI.rejectWithValue(error.message);
@@ -60,11 +63,11 @@ export const getUserProfile = createAsyncThunk(
 );
 
 export const getUserPosts = createAsyncThunk(
-  "auth/getUserPosts",
+  "auth/users/userId/posts",
   async (userId, thunkAPI) => {
     try {
-      const response = await fetchUserPosts(userId);
-      return response.data;
+      const posts = await fetchUserPosts(userId);
+      return posts;
     } catch (error) {
       return thunkAPI.rejectWithValue(error.message);
     }
@@ -87,6 +90,9 @@ const authSlice = createSlice({
       state.user = null;
       state.token = null;
       state.posts = [];
+    },
+    setUser: (state, action) => {
+      state.user = action.payload;
     },
   },
   extraReducers: (builder) => {
@@ -118,12 +124,7 @@ const authSlice = createSlice({
         state.loading = false;
         state.error = action.payload;
       })
-      .addCase(loadToken.fulfilled, (state, action) => {
-        if (action.payload) {
-          state.token = action.payload.token;
-          state.user = action.payload.user;
-        }
-      })
+
       // Fetch user info logic
       .addCase(getUserProfile.pending, (state) => {
         state.loading = true;
@@ -143,8 +144,8 @@ const authSlice = createSlice({
         state.error = null;
       })
       .addCase(getUserPosts.fulfilled, (state, action) => {
-        state.loading = false;
         state.posts = action.payload; // Store user posts
+        state.loading = false;
       })
       .addCase(getUserPosts.rejected, (state, action) => {
         state.loading = false;

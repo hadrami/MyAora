@@ -1,27 +1,64 @@
 import React, { useEffect } from "react";
-import { View, ScrollView, Text } from "react-native";
+import {
+  View,
+  ScrollView,
+  Text,
+  SafeAreaView,
+  TouchableOpacity,
+} from "react-native";
 import { useDispatch, useSelector } from "react-redux";
-import { getUserProfile, getUserPosts } from "../redux/slices/authSlice";
-import PostCard from "../components/postCard";
+import { useRouter } from "expo-router";
+import { getUserPosts } from "../redux/slices/authSlice";
+import PostCard from "../components/PostCard";
+import { Avatar } from "../components/Avatar";
 
 const Profile = () => {
   const dispatch = useDispatch();
+  const router = useRouter();
   const { user, posts, loading } = useSelector((state) => state.auth);
 
   useEffect(() => {
-    dispatch(getUserProfile(user.Id));
-    dispatch(getUserPosts(user.Id));
-  }, [dispatch]);
+    if (posts.length === 0 && user) {
+      dispatch(getUserPosts(user.Id));
+    }
+  }, [dispatch, user, posts]);
 
   return (
-    <ScrollView className="p-4">
-      <Text className="text-2xl font-bold">{user?.username}'s Profile</Text>
-      {loading ? (
-        <Text>Loading...</Text>
-      ) : (
-        posts.map((post) => <PostCard key={post.id} post={post} />)
-      )}
-    </ScrollView>
+    <SafeAreaView className="flex-1 bg-gray-100">
+      <ScrollView contentContainerStyle={{ paddingBottom: 20 }}>
+        <View className="bg-white p-4 shadow rounded-b-lg mb-4">
+          <View className="flex-row items-center">
+            <Avatar user={user} size={70} />
+            <View className="ml-4">
+              <Text className="text-xl font-bold">{user?.username}</Text>
+              <Text className="text-gray-600">{posts.length} Posts</Text>
+            </View>
+          </View>
+        </View>
+        <View className="px-4">
+          <Text className="text-xl font-bold text-gray-800 mb-4">
+            Your Posts
+          </Text>
+          {posts.length > 0 ? (
+            posts.map((post) => (
+              <TouchableOpacity
+                key={post.Id}
+                onPress={() =>
+                  router.push({
+                    pathname: "/postDetails",
+                    params: { postId: post.Id },
+                  })
+                }
+              >
+                <PostCard post={post} />
+              </TouchableOpacity>
+            ))
+          ) : (
+            <Text className="text-center text-gray-500">No posts yet</Text>
+          )}
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 };
 

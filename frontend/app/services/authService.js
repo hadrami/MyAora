@@ -1,4 +1,6 @@
 import axios from "axios";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { jwtDecode } from "jwt-decode";
 import { APP_API_URL } from "@env";
 
 // Set your backend API URL
@@ -18,7 +20,7 @@ export const checkUsernameAv = async (username) => {
 
 export const checkPhoneAv = async (phone) => {
   try {
-    const response = await axios.post(`${APP_API_URL}/auth//checkPhone`, {
+    const response = await axios.post(`${APP_API_URL}/auth/checkPhone`, {
       phone,
     });
 
@@ -36,7 +38,6 @@ export const signUpUser = async (Id, username, phone, password) => {
       phone,
       password,
     });
-    console.log("***axios response***:", response);
     // Axios will throw an error for non-2xx status codes, so no need for `response.ok`
     return response.data; // Axios automatically parses JSON response
   } catch (error) {
@@ -54,11 +55,25 @@ export const signInUser = async (phone, password) => {
       phone,
       password,
     });
-    return response.data.token;
+    const token = response.data.token;
+    // Store token in AsyncStorage
+    await AsyncStorage.setItem("token", JSON.stringify(token));
+
+    return token;
   } catch (error) {
     throw new Error(error.response?.data || error.message);
   }
 };
+
+export const loadStoredToken = async () => {
+  const token = await AsyncStorage.getItem("token");
+  if (token) {
+    const decodedToken = jwtDecode(token);
+    return { token, user: decodedToken.user };
+  }
+  return null;
+};
+
 export const getUserInfo = async (userId) => {
   try {
     const response = await axios.get(`${APP_API_URL}/auth/users/${userId}`);

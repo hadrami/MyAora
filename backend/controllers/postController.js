@@ -1,64 +1,117 @@
-const { db } = require("../config/firebaseAdmin");
+const { db, admin } = require("../config/firebaseAdmin");
+
+// Assuming this is your Firestore setup
 
 exports.createPost = async (req, res) => {
-  const { Id, title, content, status, userId } = req.body;
-
   try {
-    const postRef = db.collection("posts").doc();
-    await postRef.set({
-      Id: postRef.id,
+    const {
+      Id,
       title,
-      content,
+      description,
+      images,
+      category,
+      location,
       status,
-      createdAt: new Date(),
       userId,
+    } = req.body;
+
+    // Check if required fields are missing
+    if (
+      !title ||
+      !description ||
+      !category ||
+      !status ||
+      !userId ||
+      !location
+    ) {
+      return res.status(400).json({ error: "All fields are required." });
+    }
+
+    // Reference to the 'posts' collection in Firestore
+    const postRef = admin.firestore().collection("posts");
+    // Save the post in Firestore
+
+    const newPostRef = postRef.doc();
+    await newPostRef.set({
+      Id: newPostRef.id,
+      title,
+      description,
+      images,
+      category,
+      location,
+      status,
+      userId,
+      createdAt: new Date(),
     });
 
-    return res.status(201).json({ message: "Post created successfully" });
+    // Return the created post data
+    return res.status(201).json({ message: "Post created  successfully" });
   } catch (error) {
-    console.error("Error creating post:", error);
+    console.log("Error creating post:", error);
     return res
       .status(500)
-      .json({ message: "An error occurred while creating the post" });
+      .json({ error: "An error occurred while creating the post." });
   }
 };
 
 exports.getPosts = async (req, res) => {
   try {
-    const postsSnapshot = await db.collection("posts").get();
-    const posts = postsSnapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
+    // Reference to the 'posts' collection
+    const postsRef = admin.firestore().collection("posts");
 
-    return res.status(200).json(posts);
+    // Get all documents from the 'posts' collection
+    const snapshot = await postsRef.get();
+
+    // Check if there are no posts
+    if (snapshot.empty) {
+      return res.status(404).json({ error: "No posts found." });
+    }
+
+    // Extract posts data from the documents, using the existing 'id' field inside each post
+    const posts = snapshot.docs.map((doc) => {
+      return {
+        ...doc.data(), // Use the data as it is, including the 'id' field already in the data
+      };
+    });
+
+    // Return the list of posts
+    return res.status(200).json({ posts });
   } catch (error) {
-    console.error("Error fetching posts:", error);
+    console.log("Error fetching posts:", error);
     return res
       .status(500)
-      .json({ message: "An error occurred while fetching posts" });
+      .json({ error: "An error occurred while fetching the posts." });
   }
 };
 
-exports.getUserPosts = async (req, res) => {
-  const { userId } = req.params;
-
+// Function to get a specific post by Id
+exports.getPostById = async (req, res) => {
   try {
-    const postsSnapshot = await db
-      .collection("posts")
-      .where("Id", "==", userId)
-      .get();
+    // Get the postId from the request parameters
+    const { id } = req.params;
 
-    const posts = postsSnapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
+    // Reference to the specific document in the 'posts' collection
+    const postRef = admin.firestore().collection("posts").doc(id);
 
-    return res.status(200).json(posts);
+    // Get the document
+    const postDoc = await postRef.get();
+
+    // Check if the document exists
+    if (!postDoc.exists) {
+      return res.status(404).json({ error: "Post not found." });
+    }
+
+    // Return the post data, including the document ID
+    const post = {
+      Id: postDoc.Id,
+      ...postDoc.data(),
+    };
+
+    return res.status(200).json(post);
   } catch (error) {
-    console.error("Error fetching user posts:", error);
+    console.error("Error fetching post by Id:", error);
     return res
       .status(500)
-      .json({ message: "An error occurred while fetching user posts" });
+      .json({ error: "An error occurred while fetching the post." });
   }
 };

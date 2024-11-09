@@ -91,7 +91,6 @@ exports.signin = async (req, res) => {
 
 exports.getUserProfile = async (req, res) => {
   const { userId } = req.params;
-
   try {
     const userSnapshot = await db.collection("users").doc(userId).get();
 
@@ -106,6 +105,37 @@ exports.getUserProfile = async (req, res) => {
     return res
       .status(500)
       .json({ message: "An error occurred while fetching user profile" });
+  }
+};
+
+exports.userPosts = async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    // Reference to the 'posts' collection
+    const postsRef = db.collection("posts");
+    // Query posts where the userId matches the provided userId
+    const postsQuerySnapshot = await postsRef
+      .where("userId", "==", userId)
+      .get();
+
+    // Check if any posts were found
+    if (postsQuerySnapshot.empty) {
+      return res.status(404).json({ message: "No posts found" });
+    }
+
+    // Extract the post data from each document
+    const userPosts = postsQuerySnapshot.docs.map((doc) => ({
+      ...doc.data(), // Spread the post data
+    }));
+
+    // Return the posts in the response
+    return res.status(200).json(userPosts);
+  } catch (error) {
+    console.error("Error fetching user posts:", error);
+    return res
+      .status(500)
+      .json({ message: "An error occurred while fetching user posts" });
   }
 };
 

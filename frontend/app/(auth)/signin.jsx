@@ -13,6 +13,7 @@ import FormField from "../components/FormField";
 import CustomButton from "../components/CustomButton";
 import { Link, useRouter } from "expo-router";
 import { signin } from "../redux/slices/authSlice";
+import { getAllPosts } from "../redux/slices/postSlice";
 import CountryPicker from "react-native-country-picker-modal";
 import { useDispatch, useSelector } from "react-redux";
 
@@ -26,32 +27,24 @@ const SignIn = () => {
   const dispatch = useDispatch();
   const router = useRouter();
 
-  const { error, status } = useSelector((state) => state.auth); // Access error and status from Redux
+  const { token, user } = useSelector((state) => state.auth); // Access error and status from Redux
 
   const handleSignIn = async () => {
     setIsSubmiting(true);
-
     const fullPhoneNumber = `${callingCode}${phone}`;
-
-    // Validate inputs
-    if (phone.length < 8) {
-      Alert.alert("Error", "Phone number must be at least 8 digits long.");
-      setIsSubmiting(false);
-      return;
-    }
-
-    if (password.length < 6) {
-      Alert.alert("Error", "Password must be at least 6 characters long.");
+    if (phone.length < 8 || password.length < 6) {
+      Alert.alert("Error", "Phone or password length issue");
       setIsSubmiting(false);
       return;
     }
 
     try {
-      // Call login function from authService
       await dispatch(signin({ phone: fullPhoneNumber, password })).unwrap();
-      Alert.alert("Success", "Logged in successfully.");
-      // Store token and proceed to home screen
-      router.push("/home");
+      if (user) {
+        Alert.alert("Success", "Logged in successfully.");
+        await dispatch(getAllPosts());
+        router.push("/home");
+      }
     } catch (error) {
       Alert.alert("Error", error);
     } finally {
