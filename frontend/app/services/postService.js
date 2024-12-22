@@ -9,9 +9,27 @@ export const fetchAllPosts = async () => {
 
 // Function to create a new post
 export const createNewPost = async (postData) => {
+  const formData = new FormData();
+  formData.append("Id", postData.Id);
+  formData.append("title", postData.title);
+  formData.append("description", postData.description);
+  formData.append("category", postData.category);
+  formData.append("location", postData.location);
+  formData.append("status", postData.status);
+  formData.append("price", postData.price);
+  formData.append("userId", postData.userId);
+
+  postData.images.forEach((image, index) => {
+    formData.append("images", {
+      uri: image,
+      name: `image_${index}.jpg`,
+      type: "image/jpeg",
+    });
+  });
+
   const response = await axios.post(
     `${APP_API_URL}/posts/createPost`,
-    postData
+    formData
   );
   return response.data;
 };
@@ -24,5 +42,35 @@ export const fetchPostById = async (postId) => {
   } catch (error) {
     console.error("Error fetching post by ID:", error);
     throw error;
+  }
+};
+
+export const searchPosts = async (query) => {
+  const response = await axios.get(`${APP_API_URL}/posts/search/query`, {
+    params: { query },
+  });
+  return response.data;
+};
+
+// Update a post
+export const updatePost = async (postId, updatedPost) => {
+  try {
+    const response = await axios.put(
+      `${APP_API_URL}/posts/${postId}`,
+      updatedPost
+    );
+    return response.data;
+  } catch (error) {
+    throw new Error(error.response?.data || "Failed to update post.");
+  }
+};
+
+// Delete a post
+export const deletePost = async (postId) => {
+  try {
+    await axios.delete(`${APP_API_URL}/posts/${postId}`);
+    return { success: true };
+  } catch (error) {
+    throw new Error(error.response?.data || "Failed to delete post.");
   }
 };

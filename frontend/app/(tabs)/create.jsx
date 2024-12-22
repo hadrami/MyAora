@@ -8,7 +8,6 @@ import {
   TouchableOpacity,
   KeyboardAvoidingView,
   SafeAreaView,
-  ActivityIndicator,
   Platform,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
@@ -28,6 +27,8 @@ const Create = () => {
   const [category, setCategory] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [price, setPrice] = useState(0);
+
   const [location, setLocation] = useState();
 
   const router = useRouter();
@@ -35,9 +36,7 @@ const Create = () => {
 
   // Ensure user and userId are defined
   const { user } = useSelector((state) => state.auth);
-  console.log("the user in the creat screen:", user);
   const userId = user?.Id || ""; // Fallback to empty string if undefined
-  console.log("the userId in the creat:", userId);
   // Pick images from the gaIdllery
   const pickImage = async () => {
     let result = await ImagePicker.launchImageLibraryAsync({
@@ -58,7 +57,6 @@ const Create = () => {
 
   // Handle form submission
   const handleSubmit = async () => {
-    setIsSubmitting(true); // Set loading state
     setErrorMessage(""); // Clear any previous errors
     const Id = "";
 
@@ -70,12 +68,11 @@ const Create = () => {
       category,
       location,
       status,
+      price,
       userId,
     };
 
     try {
-      // Dispatch the action to create the post
-      console.log("postData in the screen:", postData);
       await dispatch(createPost(postData)).unwrap(); // Unwrap to catch errors properly
 
       // Navigate to the profile screen after successful creation

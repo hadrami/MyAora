@@ -6,8 +6,9 @@ import {
   signInUser,
   getUserInfo,
   fetchUserPosts,
+  resetPassword,
+  logoutService,
 } from "../../services/authService";
-import { getAllPosts } from "./postSlice";
 // Async actions using createAsyncThunk
 export const signup = createAsyncThunk(
   "auth/signup",
@@ -68,6 +69,32 @@ export const getUserPosts = createAsyncThunk(
     try {
       const posts = await fetchUserPosts(userId);
       return posts;
+    } catch (error) {
+      return thunkAPI.rejectWithValue(error.message);
+    }
+  }
+);
+
+export const resetUserPassword = createAsyncThunk(
+  "auth/resetPassword",
+  async ({ phone, newPassword }, thunkAPI) => {
+    try {
+      const response = await resetPassword(phone, newPassword);
+      return response;
+    } catch (error) {
+      return thunkAPI.rejectWithValue(
+        error.message || "Failed to reset password."
+      );
+    }
+  }
+);
+
+export const logoutUser = createAsyncThunk(
+  "auth/logout",
+  async (_, thunkAPI) => {
+    try {
+      await logoutService();
+      AsyncStorage.removeItem("token"); // Clear local storage token
     } catch (error) {
       return thunkAPI.rejectWithValue(error.message);
     }
@@ -150,6 +177,26 @@ const authSlice = createSlice({
       .addCase(getUserPosts.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
+      })
+      .addCase(resetUserPassword.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(resetUserPassword.fulfilled, (state, action) => {
+        state.loading = false;
+        state.error = null;
+      })
+      .addCase(resetUserPassword.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+      .addCase(logoutUser.fulfilled, (state) => {
+        state.user = null;
+        state.token = null;
+        state.posts = [];
+      })
+      .addCase(logoutUser.rejected, (state, action) => {
+        state.error = action.payload; // Handle logout errors if needed
       });
   },
 });

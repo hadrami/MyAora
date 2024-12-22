@@ -1,88 +1,137 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import {
   fetchAllPosts,
-  createNewPost,
   fetchPostById,
+  createPost,
+  updatePost,
+  deletePost,
 } from "../../services/postService";
 
-// Thunks for async actions
-export const getAllPosts = createAsyncThunk("posts/getPosts", async () => {
-  const response = await fetchAllPosts();
-  return response.posts; // Ensure the response structure matches
+// Fetch all posts
+export const getAllPosts = createAsyncThunk("posts/getAllPosts", async () => {
+  return await fetchAllPosts();
 });
 
-export const createPost = createAsyncThunk(
-  "posts/createPost",
-  async (postData, thunkAPI) => {
-    try {
-      const response = await createNewPost(postData);
-      return response;
-    } catch (error) {
-      return thunkAPI.rejectWithValue(error.message);
-    }
-  }
-);
-
+// Fetch a single post by ID
 export const getPostById = createAsyncThunk(
-  "posts/post/id",
-  async (postId, thunkAPI) => {
-    try {
-      const post = await fetchPostById(postId);
-      return post;
-    } catch (error) {
-      return thunkAPI.rejectWithValue(error.message);
-    }
+  "posts/getPostById",
+  async (postId) => {
+    return await fetchPostById(postId);
   }
 );
 
-// Slice definition
-const postsSlice = createSlice({
+// Create a new post
+export const createNewPost = createAsyncThunk(
+  "posts/createNewPost",
+  async (postData) => {
+    return await createPost(postData);
+  }
+);
+
+// Update a post
+export const updateExistingPost = createAsyncThunk(
+  "posts/updatePost",
+  async ({ postId, updatedData }) => {
+    return await updatePost(postId, updatedData);
+  }
+);
+
+// Delete a post
+export const removePost = createAsyncThunk(
+  "posts/deletePost",
+  async (postId) => {
+    return await deletePost(postId);
+  }
+);
+
+const postSlice = createSlice({
   name: "posts",
   initialState: {
-    allPosts: [], // Ensure this is initialized as an array
+    allPosts: [],
     currentPost: null,
     loading: false,
     error: null,
   },
-  reducers: {},
+  reducers: {
+    resetCurrentPost: (state) => {
+      state.currentPost = null;
+    },
+  },
   extraReducers: (builder) => {
     builder
       .addCase(getAllPosts.pending, (state) => {
         state.loading = true;
+        state.error = null;
       })
       .addCase(getAllPosts.fulfilled, (state, action) => {
-        state.allPosts = Array.isArray(action.payload) ? action.payload : [];
         state.loading = false;
+        state.allPosts = action.payload.posts;
       })
       .addCase(getAllPosts.rejected, (state, action) => {
-        state.error = action.payload;
         state.loading = false;
-      })
-
-      .addCase(createPost.pending, (state) => {
-        state.loading = true;
-      })
-      .addCase(createPost.fulfilled, (state, action) => {
-        state.allPosts.push(action.payload);
-        state.loading = false;
-      })
-      .addCase(createPost.rejected, (state, action) => {
-        state.error = action.payload;
-        state.loading = false;
+        state.error = action.error.message;
       })
 
       .addCase(getPostById.pending, (state) => {
         state.loading = true;
+        state.error = null;
       })
       .addCase(getPostById.fulfilled, (state, action) => {
-        state.currentPost = action.payload;
         state.loading = false;
+        state.currentPost = action.payload;
       })
       .addCase(getPostById.rejected, (state, action) => {
-        state.error = action.payload;
         state.loading = false;
+        state.error = action.error.message;
+      })
+
+      .addCase(createNewPost.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(createNewPost.fulfilled, (state, action) => {
+        state.loading = false;
+        state.allPosts.push(action.payload);
+      })
+      .addCase(createNewPost.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message;
+      })
+
+      .addCase(updateExistingPost.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(updateExistingPost.fulfilled, (state, action) => {
+        state.loading = false;
+        const index = state.allPosts.findIndex(
+          (post) => post.Id === action.payload.Id
+        );
+        if (index !== -1) {
+          state.allPosts[index] = action.payload;
+        }
+      })
+      .addCase(updateExistingPost.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message;
+      })
+
+      .addCase(removePost.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(removePost.fulfilled, (state, action) => {
+        state.loading = false;
+        state.allPosts = state.allPosts.filter(
+          (post) => post.Id !== action.payload
+        );
+      })
+      .addCase(removePost.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message;
       });
   },
 });
 
-export default postsSlice.reducer;
+export const { resetCurrentPost } = postSlice.actions;
+export default postSlice.reducer;

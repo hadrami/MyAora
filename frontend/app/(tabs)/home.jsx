@@ -1,73 +1,53 @@
 import React, { useEffect } from "react";
-import {
-  View,
-  ScrollView,
-  Text,
-  ActivityIndicator,
-  TouchableOpacity,
-} from "react-native";
+import { View, FlatList, Text, TouchableOpacity } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import { useRouter } from "expo-router";
 import { getAllPosts } from "../redux/slices/postSlice";
-import PostCard from "../components/PostCard";
+import PostCard from "../components/postCard";
+import SearchBar from "../components/SearchBar"; // Assuming you have a SearchBar component
 
 const Home = () => {
   const dispatch = useDispatch();
   const router = useRouter();
-
-  // Access the state
   const { allPosts, loading } = useSelector((state) => state.posts);
 
   useEffect(() => {
-    // Fetch posts on component mount
     dispatch(getAllPosts());
   }, [dispatch]);
 
-  // Debug logs to inspect state changes
-  console.log("***** All posts ****:", allPosts);
-  console.log("Loading state:", loading);
-
-  // Show loading indicator while fetching
   if (loading) {
     return (
-      <View className="flex-1 justify-center items-center">
-        <ActivityIndicator size="large" color="#0000ff" />
-      </View>
+      <View className="flex-1 justify-center items-center bg-gray-100"></View>
     );
   }
 
-  // Ensure allPosts is an array
-  if (!Array.isArray(allPosts)) {
-    return (
-      <View className="flex-1 justify-center items-center">
-        <Text>Data format issue detected</Text>
-      </View>
-    );
-  }
-
-  // Render posts or a message if no posts are available
   return (
-    <ScrollView className="p-4">
-      {allPosts.length > 0 ? (
-        allPosts.map((post) => (
+    <View className="flex-1 p-4 bg-gray-100">
+      <SearchBar placeholder="Search posts..." />
+      <FlatList
+        data={allPosts}
+        keyExtractor={(item) => item.Id}
+        renderItem={({ item }) => (
           <TouchableOpacity
-            key={post.Id}
             onPress={() =>
               router.push({
                 pathname: "/postDetails",
-                params: { postId: post.Id },
+                params: { postId: item.Id },
               })
             }
+            className="flex-1 m-1"
           >
-            <PostCard post={post} />
+            <PostCard post={item} />
           </TouchableOpacity>
-        ))
-      ) : (
-        <View className="flex-1 justify-center items-center">
-          <Text>No posts available</Text>
-        </View>
-      )}
-    </ScrollView>
+        )}
+        numColumns={2}
+        ListEmptyComponent={
+          <View className="flex-1 justify-center items-center mt-4">
+            <Text>No posts available</Text>
+          </View>
+        }
+      />
+    </View>
   );
 };
 

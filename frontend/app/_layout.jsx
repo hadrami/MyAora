@@ -28,9 +28,17 @@ const RootLayout = () => {
   return (
     <Provider store={store}>
       <Stack>
+        {/* Main Screens */}
         <Stack.Screen name="index" options={{ headerShown: false }} />{" "}
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />{" "}
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />{" "}
+        {/* Additional Screens */}
+        <Stack.Screen name="postDetails" options={{ title: "Post Details" }} />
+        <Stack.Screen
+          name="(tabs)/contractScreen"
+          options={{ title: "Contract Screen" }}
+        />
+        <Stack.Screen name="bookmark" options={{ title: "Bookmarks" }} />
       </Stack>
     </Provider>
   );

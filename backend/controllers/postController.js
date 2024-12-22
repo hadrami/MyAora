@@ -1,111 +1,131 @@
-const { db, admin } = require("../config/firebaseAdmin");
+const { admin, bucket } = require("../config/firebaseAdmin");
+const redisClient = require("../config/redisConfig"); // Your Redis configuration
 
-// Assuming this is your Firestore setup
-
+// Create a post and clear Redis cache
 exports.createPost = async (req, res) => {
   try {
     const {
       Id,
       title,
       description,
-      images,
       category,
       location,
       status,
+      price,
       userId,
     } = req.body;
+    const images = req.files || []; // Assuming images are sent as files
 
-    // Check if required fields are missing
     if (
       !title ||
       !description ||
       !category ||
       !status ||
+      !price ||
       !userId ||
       !location
     ) {
       return res.status(400).json({ error: "All fields are required." });
     }
 
-    // Reference to the 'posts' collection in Firestore
-    const postRef = admin.firestore().collection("posts");
-    // Save the post in Firestore
+    // Upload images to Firebase Storage
+    const imageUrls = [];
+    for (const image of images) {
+      const file = bucket.file(`posts/${Date.now()}_${image.originalname}`);
+      await file.save(image.buffer, { contentType: image.mimetype });
+      const imageUrl = `https://firebasestorage.googleapis.com/v0/b/${
+        bucket.name
+      }/o/${encodeURIComponent(file.name)}?alt=media`;
+      imageUrls.push(imageUrl);
+    }
 
+    // Save post to Firestore
+    const postRef = admin.firestore().collection("posts");
     const newPostRef = postRef.doc();
-    await newPostRef.set({
+    const postData = {
       Id: newPostRef.id,
       title,
       description,
-      images,
       category,
       location,
       status,
+      price,
       userId,
+      images: imageUrls,
       createdAt: new Date(),
-    });
+    };
 
-    // Return the created post data
-    return res.status(201).json({ message: "Post created  successfully" });
+    await newPostRef.set(postData);
+
+    // Clear Redis cache for posts
+    await redisClient.del("posts");
+
+    return res.status(201).json({ message: "Post created successfully" });
   } catch (error) {
-    console.log("Error creating post:", error);
+    console.error("Error creating post:", error);
     return res
       .status(500)
       .json({ error: "An error occurred while creating the post." });
   }
 };
 
+// Fetch all posts and cache them
 exports.getPosts = async (req, res) => {
   try {
-    // Reference to the 'posts' collection
-    const postsRef = admin.firestore().collection("posts");
+    // Check Redis cache
 
-    // Get all documents from the 'posts' collection
+    const cachedPosts = await redisClient.get("posts");
+    if (cachedPosts) {
+      console.log("Cache hit for posts");
+      return res.status(200).json({ posts: JSON.parse(cachedPosts) });
+    }
+
+    // Fetch posts from Firestore
+    const postsRef = admin.firestore().collection("posts");
     const snapshot = await postsRef.get();
 
-    // Check if there are no posts
     if (snapshot.empty) {
       return res.status(404).json({ error: "No posts found." });
     }
 
-    // Extract posts data from the documents, using the existing 'id' field inside each post
-    const posts = snapshot.docs.map((doc) => {
-      return {
-        ...doc.data(), // Use the data as it is, including the 'id' field already in the data
-      };
-    });
+    const posts = snapshot.docs.map((doc) => doc.data());
 
-    // Return the list of posts
+    // Cache posts in Redis for 1 hour
+    await redisClient.set("posts", JSON.stringify(posts), { EX: 3600 });
+
     return res.status(200).json({ posts });
   } catch (error) {
-    console.log("Error fetching posts:", error);
+    console.error("Error fetching posts:", error);
     return res
       .status(500)
-      .json({ error: "An error occurred while fetching the posts." });
+      .json({ error: "An error occurred while fetching posts." });
   }
 };
 
-// Function to get a specific post by Id
+// Fetch a specific post by Id and cache it
 exports.getPostById = async (req, res) => {
   try {
-    // Get the postId from the request parameters
     const { id } = req.params;
 
-    // Reference to the specific document in the 'posts' collection
-    const postRef = admin.firestore().collection("posts").doc(id);
+    // Check Redis cache
+    const cachedPost = await redisClient.get(`post:${id}`);
+    if (cachedPost) {
+      console.log("Cache hit for post:", id);
+      return res.status(200).json(JSON.parse(cachedPost));
+    }
 
-    // Get the document
+    // Fetch post from Firestore
+    const postRef = admin.firestore().collection("posts").doc(id);
     const postDoc = await postRef.get();
 
-    // Check if the document exists
     if (!postDoc.exists) {
       return res.status(404).json({ error: "Post not found." });
     }
 
-    // Return the post data, including the document ID
-    const post = {
-      Id: postDoc.Id,
-      ...postDoc.data(),
-    };
+    const post = { Id: id, ...postDoc.data() };
+
+    // Cache post in Redis for 1 hour
+    await redisClient.set(`post:${id}`, JSON.stringify(post), { EX: 3600 });
 
     return res.status(200).json(post);
   } catch (error) {
@@ -113,5 +133,116 @@ exports.getPostById = async (req, res) => {
     return res
       .status(500)
       .json({ error: "An error occurred while fetching the post." });
+  }
+};
+
+// Search posts and cache results
+exports.searchPosts = async (req, res) => {
+  try {
+    const { query } = req.params;
+
+    // Check Redis cache
+    const cachedSearch = await redisClient.get(`search:${query}`);
+    if (cachedSearch) {
+      console.log("Cache hit for search:", query);
+      return res.status(200).json({ posts: JSON.parse(cachedSearch) });
+    }
+
+    // Fetch posts from Firestore
+    const postsRef = admin.firestore().collection("posts");
+    const snapshot = await postsRef.get();
+
+    if (snapshot.empty) {
+      return res.status(404).json({ error: "No posts found." });
+    }
+
+    const words = query.trim().split(/\s+/);
+    const regexPattern = words.map((word) => `(?=.*\\b${word}\\b)`).join("");
+    const regex = new RegExp(`^${regexPattern}.*`, "i");
+
+    const filteredPosts = snapshot.docs
+      .map((doc) => ({ Id: doc.id, ...doc.data() }))
+      .filter(
+        (post) =>
+          (post.title && regex.test(post.title)) ||
+          (post.description && regex.test(post.description)) ||
+          (post.location && regex.test(post.location))
+      );
+
+    if (filteredPosts.length === 0) {
+      return res.status(404).json({ error: "No matching posts found." });
+    }
+
+    // Cache search results in Redis for 10 minutes
+    await redisClient.set(`search:${query}`, JSON.stringify(filteredPosts), {
+      EX: 600,
+    });
+
+    return res.status(200).json({ posts: filteredPosts });
+  } catch (error) {
+    console.error("Error searching posts:", error);
+    return res
+      .status(500)
+      .json({ error: "An error occurred while searching for posts." });
+  }
+};
+
+// Delete a post
+exports.deletePost = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Reference to the specific document
+    const postRef = admin.firestore().collection("posts").doc(id);
+    const postDoc = await postRef.get();
+
+    if (!postDoc.exists) {
+      return res.status(404).json({ error: "Post not found." });
+    }
+
+    // Delete associated images from Firebase Storage
+    const images = postDoc.data().images || [];
+    for (const image of images) {
+      const filePath = decodeURIComponent(image.split("?")[0].split("/o/")[1]);
+      const file = bucket.file(filePath);
+      await file.delete().catch(() => {}); // Ignore file not found errors
+    }
+
+    // Delete post
+    await postRef.delete();
+
+    // Clear Redis cache
+    await redisClient.del("posts");
+
+    return res.status(200).json({ message: "Post deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting post:", error);
+    return res.status(500).json({ error: "Failed to delete post." });
+  }
+};
+
+exports.updatePost = async (req, res) => {
+  try {
+    const { id } = req.params; // Post ID from URL params
+    const updateData = req.body; // Data sent in the request body
+
+    // Filter out undefined fields
+    const filteredData = Object.fromEntries(
+      Object.entries(updateData).filter(([_, value]) => value !== undefined)
+    );
+
+    if (Object.keys(filteredData).length === 0) {
+      return res.status(400).json({ error: "No valid fields to update." });
+    }
+
+    const postRef = admin.firestore().collection("posts").doc(id);
+    await postRef.update(filteredData);
+
+    return res.status(200).json({ message: "Post updated successfully." });
+  } catch (error) {
+    console.error("Error updating post:", error);
+    return res
+      .status(500)
+      .json({ error: "An error occurred while updating the post." });
   }
 };

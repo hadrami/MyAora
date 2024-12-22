@@ -1,18 +1,25 @@
 import { View, Text, Image } from "react-native";
-import { Tabs, Redirect } from "expo-router";
+import { Tabs } from "expo-router";
 import { icons } from "../../constants";
 
 const TabIcon = ({ icon, color, name, focused }) => {
   return (
-    <View className="items-center justify-center gap-2 pt-2 ">
+    <View className="items-center justify-center pt-2">
       <Image
         source={icon}
         resizeMode="contain"
         tintColor={color}
-        className="w-6 h-6"
+        style={{ width: 24, height: 24 }} // Adjust icon size for consistency
       />
       <Text
-        className={`${focused ? "font-psemibold" : "font-pregular"} text-xs`}
+        style={{
+          color,
+          fontSize: 12,
+          fontWeight: focused ? "600" : "400", // Semi-bold for active, regular for inactive
+          textAlign: "center",
+        }}
+        numberOfLines={1} // Ensures the text stays on one line
+        ellipsizeMode="tail" // Handles overflow gracefully
       >
         {name}
       </Text>
@@ -26,13 +33,13 @@ const TabsLayout = () => {
       <Tabs
         screenOptions={{
           tabBarShowLabel: false,
-          tabBarActiveTintColor: "#0A172C", // Dark blue when active
-          tabBarInactiveTintColor: "#E5E7EC", // White gray when inactive
+          tabBarActiveTintColor: "#0A172C", // Dark blue for active tab
+          tabBarInactiveTintColor: "#E5E7EC", // Light gray for inactive tab
           tabBarStyle: {
-            paddingVertical: 4,
-            height: 84,
+            height: 70, // Slightly reduced height for a compact appearance
             backgroundColor: "white",
             borderTopWidth: 1,
+            borderTopColor: "#ccc",
           },
         }}
       >

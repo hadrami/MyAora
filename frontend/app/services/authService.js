@@ -93,3 +93,24 @@ export const fetchUserPosts = async (userId) => {
     throw new Error("Error fetching user posts");
   }
 };
+
+export const resetPassword = async (phone, newPassword) => {
+  try {
+    const response = await axios.post(`${APP_API_URL}/auth/resetPassword`, {
+      phone,
+      newPassword,
+    });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { message: "Failed to reset password." };
+  }
+};
+
+export const logoutService = async () => {
+  try {
+    const response = await axios.post(`${APP_API_URL}/auth/logout`);
+    return response.data;
+  } catch (error) {
+    throw new Error(error.response?.data || error.message);
+  }
+};

@@ -19,8 +19,10 @@ const serviceAccount = {
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
   databaseURL: process.env.DatabaseUrl,
+  storageBucket: process.env.FIREBASE_STORAGE_BUCKET, // Add this line
 });
 
 // Initialize Firestore (admin version)
 const db = admin.firestore();
-module.exports = { db, admin };
+const bucket = admin.storage().bucket(); // Access Firebase Storage bucket
+module.exports = { db, admin, bucket };

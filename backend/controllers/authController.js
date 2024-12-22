@@ -139,9 +139,33 @@ exports.userPosts = async (req, res) => {
   }
 };
 
+exports.resetPassword = async (req, res) => {
+  const { phone, newPassword } = req.body;
+
+  try {
+    const usersRef = db.collection("users");
+    const userQuery = await usersRef.where("phone", "==", phone).get();
+
+    if (userQuery.empty) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const userId = userQuery.docs[0].id;
+    const hashedPassword = await bcrypt.hash(newPassword, 8);
+
+    await usersRef.doc(userId).update({ password: hashedPassword });
+
+    return res.status(200).json({ message: "Password reset successfully." });
+  } catch (error) {
+    console.error("Error resetting password:", error);
+    return res.status(500).json({ message: "Failed to reset password." });
+  }
+};
+
 exports.logout = async (req, res) => {
   try {
-    await admin.auth().revokeRefreshTokens(req.body.uid);
+    const { uid } = req.body; // Expect UID from request
+    await admin.auth().revokeRefreshTokens(uid);
     res.status(200).send("User logged out successfully");
   } catch (error) {
     return res.status(500).send(error.message);

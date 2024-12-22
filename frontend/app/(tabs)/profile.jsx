@@ -9,13 +9,13 @@ import {
 import { useDispatch, useSelector } from "react-redux";
 import { useRouter } from "expo-router";
 import { getUserPosts } from "../redux/slices/authSlice";
-import PostCard from "../components/PostCard";
-import { Avatar } from "../components/Avatar";
+import PostCard from "../components/postCard";
+import Avatar from "../components/Avatar";
 
 const Profile = () => {
   const dispatch = useDispatch();
   const router = useRouter();
-  const { user, posts, loading } = useSelector((state) => state.auth);
+  const { user, posts } = useSelector((state) => state.auth);
 
   useEffect(() => {
     if (posts.length === 0 && user) {
