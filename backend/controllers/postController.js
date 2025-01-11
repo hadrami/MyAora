@@ -223,22 +223,51 @@ exports.deletePost = async (req, res) => {
 
 exports.updatePost = async (req, res) => {
   try {
-    const { id } = req.params; // Post ID from URL params
-    const updateData = req.body; // Data sent in the request body
+    const { id } = req.params; // Extract post ID from params
+    const updatedData = req.body; // Extract updated fields from request body
+    const images = req.files || []; // Extract uploaded images
 
-    // Filter out undefined fields
-    const filteredData = Object.fromEntries(
-      Object.entries(updateData).filter(([_, value]) => value !== undefined)
-    );
-
-    if (Object.keys(filteredData).length === 0) {
-      return res.status(400).json({ error: "No valid fields to update." });
+    if (!id) {
+      return res.status(400).json({ error: "Post ID is required." });
     }
 
     const postRef = admin.firestore().collection("posts").doc(id);
-    await postRef.update(filteredData);
 
-    return res.status(200).json({ message: "Post updated successfully." });
+    // Fetch the current post data
+    const existingPost = (await postRef.get()).data();
+
+    if (!existingPost) {
+      return res.status(404).json({ error: "Post not found." });
+    }
+
+    // Handle image uploads if any new images are provided
+    let imageUrls = existingPost.images || [];
+
+    if (images.length > 0) {
+      const uploadedImageUrls = [];
+      for (const image of images) {
+        const file = bucket.file(`posts/${Date.now()}_${image.originalname}`);
+        await file.save(image.buffer, { contentType: image.mimetype });
+        const imageUrl = `https://firebasestorage.googleapis.com/v0/b/${
+          bucket.name
+        }/o/${encodeURIComponent(file.name)}?alt=media`;
+        uploadedImageUrls.push(imageUrl);
+      }
+      // Merge existing images with new ones
+      imageUrls = [...imageUrls, ...uploadedImageUrls];
+    }
+
+    // Update the post in Firestore
+    await postRef.update({ ...updatedData, images: imageUrls });
+
+    // Clear Redis cache
+    await redisClient.del(`post:${id}`);
+    await redisClient.del("posts");
+
+    return res.status(200).json({
+      message: "Post updated successfully",
+      updatedPost: { id, ...updatedData, images: imageUrls },
+    });
   } catch (error) {
     console.error("Error updating post:", error);
     return res

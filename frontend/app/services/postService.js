@@ -53,22 +53,20 @@ export const searchPosts = async (query) => {
 };
 
 // Update a post
-export const updatePost = async (postId, updatedPost) => {
-  try {
-    const response = await axios.put(
-      `${APP_API_URL}/posts/${postId}`,
-      updatedPost
-    );
-    return response.data;
-  } catch (error) {
-    throw new Error(error.response?.data || "Failed to update post.");
-  }
+export const updatePost = async (postId, updatedData) => {
+  const response = await axios.put(
+    `${process.env.APP_API_URL}/posts/update/${postId}`,
+    updatedData
+  );
+  console.log("The response in the Service:", response.data);
+
+  return response.data;
 };
 
 // Delete a post
 export const deletePost = async (postId) => {
   try {
-    await axios.delete(`${APP_API_URL}/posts/${postId}`);
+    await axios.delete(`${APP_API_URL}/posts/delete/${postId}`);
     return { success: true };
   } catch (error) {
     throw new Error(error.response?.data || "Failed to delete post.");

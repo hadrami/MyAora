@@ -31,11 +31,18 @@ export const createNewPost = createAsyncThunk(
 // Update a post
 export const updateExistingPost = createAsyncThunk(
   "posts/updatePost",
-  async ({ postId, updatedData }) => {
-    return await updatePost(postId, updatedData);
+  async ({ postId, updatedData }, thunkAPI) => {
+    try {
+      console.log("Updating post in the Slice:", updatedData);
+      const response = await updatePost(postId, updatedData);
+      console.log("The response in the Slice:", response.updatedPost);
+
+      return { postId, updatedPost: response.updatedPost };
+    } catch (error) {
+      return thunkAPI.rejectWithValue(error.message);
+    }
   }
 );
-
 // Delete a post
 export const removePost = createAsyncThunk(
   "posts/deletePost",
@@ -102,15 +109,17 @@ const postSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
+
       .addCase(updateExistingPost.fulfilled, (state, action) => {
         state.loading = false;
         const index = state.allPosts.findIndex(
-          (post) => post.Id === action.payload.Id
+          (post) => post.Id === action.payload.postId
         );
         if (index !== -1) {
-          state.allPosts[index] = action.payload;
+          state.allPosts[index] = action.payload.updatedPost;
         }
       })
+
       .addCase(updateExistingPost.rejected, (state, action) => {
         state.loading = false;
         state.error = action.error.message;

@@ -18,7 +18,7 @@ router.post("/createPost", upload.array("images", 11), createPost);
 router.get("/getPosts", getPosts);
 router.get("/post/:id", getPostById); // Route for fetching a post by Id
 router.get("/search/:query", searchPosts);
-router.delete("/:id", deletePost);
-router.put("/:id", upload.array("images"), updatePost);
+router.delete("/delete/:id", deletePost);
+router.put("/update/:id", updatePost);
 
 module.exports = router;
